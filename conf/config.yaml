@@ -1,0 +1,47 @@
+name: "nil"
+mode: "dev"
+port: 8888
+version: "v0.1.4"
+start_time: "2023-11-22"
+machine_id: 1
+
+auth:
+  jwt_expire: 8760
+
+log:
+  level: "debug"
+  filename: "nil.log"
+  max_size: 200
+  max_age: 30
+  max_backups: 7
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password: "jx20031002"
+  dbname: "nil"
+  max_open_conns: 200
+  max_idle_conns: 50
+
+redis:
+  host: "127.0.0.1"
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 100
+
+email:
+  official_email: "jx178861659@163.com"
+  nick_name : "Nil"
+  secret : "QJOLHGOLNLXWHESJ"
+  host : "smtp.163.com"
+  base_body1: "<h1>Hello %s, Welcome to Nil.</h1> <p>Here is your captcha:</p><br><hr><p>%s</p><hr><br><p>Captcha only lasts 5 minutes, please use it in time.</p>"
+  base_body2: "<p>Here is your captcha:</p><br><hr><p>%s</p><hr><br><p>Captcha only lasts 5 minutes, please use it in time.</p>"
+  port : 25
+
+oss:
+  accesskeyID : "LTAI5tEbqqn3vvwPWgHsdeKN"
+  accessKeySecret : "olcZC1CdzgyubG7mepp9xh0nWXnG15"
+  endpoint : "oss-cn-hangzhou.aliyuncs.com"
+  bucketName : "mc-nil"
