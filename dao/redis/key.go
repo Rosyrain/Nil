@@ -23,6 +23,9 @@ const (
 	KeySubCommentVotedPrefix = "subcomment:voted:" //zset;记录用户投票类型；参数是post_id
 	KeyUserFocusPrefix       = "user:focus:"       //zset;记录用户的关注用户
 	KeyUserHistoryPrefix     = "user:history:"     //zset;记录用户浏览记录
+
+	KeyChunkCheckPrefix = "chunk:check:" //set:保存每个分区下的审核通过id
+
 )
 
 // GetRedisKey  返回redis key加上前缀

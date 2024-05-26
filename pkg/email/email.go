@@ -58,7 +58,7 @@ func SendEmailWithPool(to []string, from, secret, host, subject, body, nickname 
 		From:    fmt.Sprintf("%s<%s>", nickname, from),
 		To:      to,
 		Subject: subject,
-		Text:    []byte(body),
+		HTML:    []byte(body),
 	}
 	_ = tls.Config{InsecureSkipVerify: true}
 	return pool.Send(e, 5*time.Second)

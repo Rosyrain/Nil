@@ -46,9 +46,6 @@ func SetupRouter(mode string) *gin.Engine {
 		//获取用户信息
 		v1.GET("/user/:username", controller.UserInfoHandler)
 
-		//创建板块信息
-		v1.POST("/create_chunk", controller.CreateChunkHandler)
-
 		//获取所有板块信息(简略)(id,name)
 		v1.GET("/chunks", controller.ChunkHandler)
 
@@ -118,8 +115,29 @@ func SetupRouter(mode string) *gin.Engine {
 		//获取用户浏览记录
 		v1.GET("/user/history", controller.GetUserHistoryListHandler)
 
-		////
+		//文件上次
 		v1.POST("upload", controller.UploadFileHandler)
+
+		//删除主评论
+
+		//删除子评论
+
+		//删除帖子
+
+		////
+	}
+
+	v2 := r.Group("/api/v2")
+	{
+		v2.POST("/login", controller.SuperUserLoginHandler)
+	}
+	v2.Use(middlewares.JWTAuthMiddleware())
+	{
+		//创建板块信息
+		v2.POST("/create_chunk", controller.CreateChunkHandler)
+
+		//审核帖子
+		v2.POST("/examine", controller.ExaminePostHandler)
 	}
 
 	pprof.Register(r) //注册pprof相关路由

@@ -155,12 +155,12 @@ func GetPostList2(p *models.ParamPostList) (data []*models.ApiPostDetail, err er
 // GetChunkPostList 根据板块，时间/分数获取帖子列表
 func GetChunkPostList(p *models.ParamPostList) (data []*models.ApiPostDetail, err error) {
 	//2.取redis查询id列表
-	ids, err := redis.GetChunkPostListIDsInOrder(p)
+	ids, err := redis.GetChunkCheckPostListIDsInOrder(p)
 	if err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		zap.L().Warn("redis.GetCommunityPostListIDsInOrder success but return 0 data")
+		zap.L().Warn("redis.GetChunkCheckPostListIDsInOrder success but return 0 data")
 		return
 	}
 	zap.L().Debug("GetCommunityPostList", zap.Any("ids", ids))

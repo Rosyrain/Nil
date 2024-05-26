@@ -1,14 +1,15 @@
+DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (
-                      id int NOT NULL AUTO_INCREMENT,
-                      user_id bigint(20) NOT NULL,
-                      username varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
-                      password varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
-                      email varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
-                      gender tinyint(4) NOT NULL DEFAULT '0',
+                      `id` int NOT NULL AUTO_INCREMENT,
+                      `user_id` bigint(20) NOT NULL,
+                      `username` varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
+                      `password` varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
+                      `email` varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
+                      `gender` tinyint(4) NOT NULL DEFAULT '0',
                       `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
                       `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                      status tinyint(4) NOT NULL DEFAULT '0',
-                      PRIMARY KEY (id),
+                      `status` tinyint(4) NOT NULL DEFAULT '0',
+                      PRIMARY KEY (`id`),
                       UNIQUE KEY `idx_username` (`username`) USING BTREE,
                       UNIQUE KEY `idx_user_id` (`user_id`) USING BTREE
 )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -59,6 +60,21 @@ CREATE TABLE `comment` (
                        UNIQUE KEY `idx_comment_id`(`comment_id`),
                         KEY `idx_author_id`(`author_id`),
                         KEY `idx_post_id`(`post_id`)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+DROP TABLE IF EXISTS `superuser`;
+CREATE TABLE `superuser` (
+                        `id` int NOT NULL AUTO_INCREMENT,
+                        `user_id` bigint(20) NOT NULL,
+                        `chunk_id` bigint(20)  NOT NULL,
+                        `username` varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
+                        `password` varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
+                        `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                        `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (`id`),
+                        UNIQUE KEY `idx_username` (`username`) USING BTREE,
+                        UNIQUE KEY `idx_user_id` (`user_id`) USING BTREE
 )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 show tables;
