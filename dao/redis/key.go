@@ -24,7 +24,12 @@ const (
 	KeyUserFocusPrefix       = "user:focus:"       //zset;记录用户的关注用户
 	KeyUserHistoryPrefix     = "user:history:"     //zset;记录用户浏览记录
 
-	KeyChunkCheckPrefix = "chunk:check:" //set:保存每个分区下的审核通过id
+	KeyChunkNormalPrefix = "chunk:normal:" //set:保存每个分区下的正常的帖子id
+	KeyNormalPost        = "normal:"       //set:用于保存全部的正常的帖子id
+
+	KeyChunkToBeReviewPrefix = "chunk:tobereview:" //set:保存每个分区下的待审查的帖子id
+
+	KeyChunkToBeDeletePrefix = "chunk:tobedelete:" //set:保存每个分区下的待删除的帖子id
 
 )
 

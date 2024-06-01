@@ -36,7 +36,7 @@ func CreateComment(p *models.Comment) error {
 	return err
 }
 
-func CreateSubComment(p *models.Comment, mcomment_id int64) error {
+func CreateSubComment(p *models.Comment, commentid int64) error {
 	pipeline := client.TxPipeline()
 	//评论时间
 	pipeline.ZAdd(GetRedisKey(KeySubCommentTime), redis.Z{
@@ -51,7 +51,7 @@ func CreateSubComment(p *models.Comment, mcomment_id int64) error {
 	})
 
 	//把次级评论id加到主评论的set
-	cKey := GetRedisKey(KeyCommentPrefix + strconv.Itoa(int(mcomment_id)))
+	cKey := GetRedisKey(KeyCommentPrefix + strconv.Itoa(int(commentid)))
 	pipeline.SAdd(cKey, p.CommentID)
 
 	//把评论id加到user的set下
@@ -73,7 +73,7 @@ func GetUserCommentIDsInOrder(p *models.ParamCommentList) (data []string, err er
 	uKey := GetRedisKey(KeyUserCommentPrefix + strconv.Itoa(int(p.UserID)))
 
 	//利用缓存key减少zinterstore执行的次数
-	key := orderKey + strconv.Itoa(int(p.UserID))
+	key := orderKey + "usermaincomments:" + strconv.Itoa(int(p.UserID))
 	if client.Exists(key).Val() < 1 {
 		//不存在，需要计算
 		//pipeline := client.TxPipeline()
@@ -105,7 +105,7 @@ func GetPostCommentIDsInOrder(p *models.ParamCommentList) (data []string, err er
 	pKey := GetRedisKey(KeyPostCommentPrefix + strconv.Itoa(int(p.PostID)))
 
 	//利用缓存key减少zinterstore执行的次数
-	key := orderKey + strconv.Itoa(int(p.UserID))
+	key := orderKey + "postmaincomments:" + strconv.Itoa(int(p.PostID))
 	if client.Exists(key).Val() < 1 {
 		//不存在，需要计算
 		//pipeline := client.TxPipeline()
@@ -137,7 +137,7 @@ func GetSubCommentIDsInOrder(p *models.ParamCommentList) (data []string, err err
 	cKey := GetRedisKey(KeyCommentPrefix + strconv.Itoa(int(p.CommentID)))
 
 	//利用缓存key减少zinterstore执行的次数
-	key := orderKey + strconv.Itoa(int(p.CommentID))
+	key := orderKey + "subcomments:" + strconv.Itoa(int(p.CommentID))
 	if client.Exists(key).Val() < 1 {
 		//不存在，需要计算
 		//pipeline := client.TxPipeline()
@@ -158,4 +158,105 @@ func GetSubCommentIDsInOrder(p *models.ParamCommentList) (data []string, err err
 	//fmt.Println("key:", key)
 	//存在的话直接根据key查询ids
 	return GetIDsFormKey(key, p.Page, p.Size)
+}
+
+// 获取全部子评论
+func GetAllSubCommentIDs(cid int64) (data []string, err error) {
+	orderKey := GetRedisKey(KeySubCommentTime)
+
+	//帖子的key
+	cKey := GetRedisKey(KeyCommentPrefix + strconv.Itoa(int(cid)))
+	fmt.Println("cKey:", cKey)
+
+	//利用缓存key减少zinterstore执行的次数
+	key := orderKey + "allsubcomments" + strconv.Itoa(int(cid))
+	if client.Exists(key).Val() < 1 {
+		//不存在，需要计算
+		//pipeline := client.TxPipeline()
+
+		//组合一个临时Zset集合存储查询结果(60s),作为缓存
+		//这个ordKey形如 post:time:12121 下面存id+time/score
+		client.ZInterStore(key, redis.ZStore{
+			Aggregate: "MAX",
+		}, cKey, orderKey) //zinterstore 计算
+		client.Expire(key, 60*time.Second)
+		//_, err = pipeline.Exec()
+		//if err != redisNil {
+		//	return
+		//}
+	}
+
+	//fmt.Println("key:", key)
+	//存在的话直接根据key查询ids
+	return GetIDsFormKey(key, 1, -1)
+}
+
+func DeleteComment(ids []string, cid, uid, pid int64) (err error) {
+	//需要删除的地方有 commentTime,commentScore,commmet:id,userComment;还有各个评论的投票;post:comment
+	oKey := GetRedisKey(KeyCommentTime)
+	sKey := GetRedisKey(KeyCommentScore)
+	osKey := GetRedisKey(KeySubCommentTime)
+	ssKey := GetRedisKey(KeySubCommentScore)
+	uKey := GetRedisKey(KeyUserCommentPrefix + strconv.Itoa(int(uid)))
+	cKey := GetRedisKey(KeyCommentPrefix + strconv.Itoa(int(cid)))
+	vcKey := GetRedisKey(KeyCommentVotedPrefix + strconv.Itoa(int(cid)))
+	pKey := GetRedisKey(KeyPostCommentPrefix + strconv.Itoa(int(pid)))
+
+	//1.先删除time和score中的记录
+	_, err = client.ZRem(oKey, ids).Result()
+	if err != nil {
+		return
+	}
+	_, err = client.ZRem(sKey, ids).Result()
+	if err != nil {
+		return
+	}
+
+	_, err = client.ZRem(osKey, ids).Result()
+	if err != nil {
+		return
+	}
+	_, err = client.ZRem(ssKey, ids).Result()
+	if err != nil {
+		return
+	}
+
+	//2.删除用户下面的评论
+	_, err = client.SRem(uKey, ids).Result()
+	if err != nil {
+		return
+	}
+
+	//3.删除主评论
+	_, err = client.Del(cKey).Result()
+
+	//4.删除评论对应的投票信息
+	//4.1主评论
+	_, err = client.Del(vcKey).Result()
+	if err != nil {
+		return err
+	}
+
+	//4.2删除子评论的投票
+	// 将需要删除的 id 切片转换为 []interface{}
+	delscKeys := make([]string, len(ids))
+	for _, id := range ids {
+		scKey := GetRedisKey(KeySubCommentVotedPrefix) + id
+		delscKeys = append(delscKeys, scKey)
+	}
+
+	// 批量删除 Redis 键值对
+	_, err = client.Del(delscKeys...).Result()
+	if err != nil {
+		return err
+	}
+
+	//5.删除post下的
+	_, err = client.SRem(pKey, cid).Result()
+	if err != nil {
+		return err
+	}
+
+	return
+
 }

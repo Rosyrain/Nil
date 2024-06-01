@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"nil/models"
+	"strconv"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -21,7 +22,7 @@ func CreatePost(p *models.Post) (err error) {
 func GetPostByID(pid int64) (post *models.Post, err error) {
 	post = new(models.Post)
 	sqlStr := `select 
-    post_id,title,content,author_id,chunk_id,create_time 
+    post_id,title,content,status,author_id,chunk_id,create_time 
 	from post where post_id=?`
 	err = db.Get(post, sqlStr, pid)
 	return
@@ -30,7 +31,7 @@ func GetPostByID(pid int64) (post *models.Post, err error) {
 // GetPostList  查询帖子列表函数
 func GetPostList(offset, limit int64) (posts []*models.Post, err error) {
 	sqlStr := `select 
-    post_id,title,content,author_id,chunk_id,create_time 
+    post_id,title,content,status,author_id,chunk_id,create_time 
 	from post 
 	ORDER BY create_time
 	DESC 
@@ -43,7 +44,7 @@ func GetPostList(offset, limit int64) (posts []*models.Post, err error) {
 
 // GetPostListByIDs  根据给点的id列表查询帖子数据
 func GetPostListByIDs(ids []string) (data []*models.Post, err error) {
-	sqlStr := `select post_id,title,content,author_id,chunk_id,create_time
+	sqlStr := `select post_id,title,content,status,author_id,chunk_id,create_time
 			from post
 			where post_id in (?)
 			order by FIND_IN_SET(post_id,?)
@@ -58,4 +59,22 @@ func GetPostListByIDs(ids []string) (data []*models.Post, err error) {
 	query = db.Rebind(query)
 	err = db.Select(&data, query, args...) //!!!!别忘记最后的 ...
 	return
+}
+
+func ResubmitPost(p *models.Post) error {
+	sqlStr := `update post
+    set title = ?, content = ?, author_id = ?, chunk_id = ?, status = ?
+    where post_id = ?
+`
+	_, err := db.Exec(sqlStr, p.Title, p.Content, p.AuthorID, p.ChunkID, p.Status, p.ID)
+	return err
+}
+
+func DeletePost(pid int64) error {
+	id := strconv.Itoa(int(pid))
+	sqlStr := `update post
+    set  status = 3
+    where post_id = ?`
+	_, err := db.Exec(sqlStr, id)
+	return err
 }

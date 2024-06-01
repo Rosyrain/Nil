@@ -115,14 +115,17 @@ func SetupRouter(mode string) *gin.Engine {
 		//获取用户浏览记录
 		v1.GET("/user/history", controller.GetUserHistoryListHandler)
 
-		//文件上次
-		v1.POST("upload", controller.UploadFileHandler)
+		//文件上传
+		v1.POST("/upload", controller.UploadFileHandler)
 
-		//删除主评论
+		//删除评论
+		v1.GET("/comment/:id", controller.CommentDeleteHandler)
 
-		//删除子评论
+		//重新提交帖子
+		v1.POST("/post/resubmit", controller.ResubmitPostHandler)
 
 		//删除帖子
+		v1.GET("/post/delete/:id", controller.DeletePostHandler)
 
 		////
 	}
@@ -138,6 +141,18 @@ func SetupRouter(mode string) *gin.Engine {
 
 		//审核帖子
 		v2.POST("/examine", controller.ExaminePostHandler)
+
+		//根据选择返回对应帖子列表
+		v2.GET("/posts", controller.SuperUserGetPostListHandler)
+
+		//获取帖子详细详细
+		v2.GET("/post/:id", controller.GetPostDetailHandler)
+
+		//删除帖子
+		v2.GET("/post/delete/:id", controller.SuperuserDeletePostHandler)
+
+		//删除评论
+		v2.GET("/comment/:id", controller.SuperUserCommentDeleteHandler)
 	}
 
 	pprof.Register(r) //注册pprof相关路由

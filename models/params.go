@@ -37,12 +37,6 @@ type ParamUpdateUserInfo struct {
 	UserId     int64  `json:"user_id,string"`
 }
 
-// ParamChunk  板块创建信息
-type ParamChunk struct {
-	ChunkName    string `json:"chunk_name" binding:"required"`
-	Introduction string `json:"introduction" binding:"required"`
-}
-
 // VoteData  投票数据
 type ParamPostVoteData struct {
 	//userID 从请求中获取当前的用户
@@ -105,11 +99,10 @@ type ParamHistoryList struct {
 	Size   int64 `json:"size" form:"size" example:"10"`
 }
 
-type ParamExamine struct {
-	UserID    int64 `json:"user_id,string"`
-	ChunkID   int64 `json:"chunk_id,string" binding:"required"`
-	PostID    int64 `json:"post_id,string" binding:"required"`
-	Direction int   `json:"direction" binding:"oneof=1 2"`
+type ParamResubmitPost struct {
+	PostID int64 `json:"post_id,string" binding:"required"`
+	Status int   `json:"status" binding:"oneof=0 1 2"`
+	Post   *Post `json:"post" binding:"required"`
 }
 
 // ParamChunkPostList  获取社区列表query string 参数

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"nil/logic"
 	"nil/models"
 	"strconv"
@@ -188,4 +189,67 @@ func GetUserPostListHandler(c *gin.Context) {
 
 	//返回响应
 	ResponseSuccess(c, data)
+}
+
+func ResubmitPostHandler(c *gin.Context) {
+	//1.参数校验
+	p := new(models.ParamResubmitPost)
+	if err := c.ShouldBindJSON(&p); err != nil {
+		zap.L().Debug(" c.ShouldBindJSON(&p) error", zap.Any("err", err))
+		zap.L().Error("Resubmit post with invalid param")
+		ResponseError(c, CodeInvalidParam)
+		return
+	}
+
+	if p.PostID != p.Post.ID {
+		fmt.Println(p.PostID, p.Post.ID)
+		zap.L().Error("p.PostID != p.Post.ID", zap.Any("修改id不相等和提交的id", p.Post))
+		ResponseError(c, CodeServerBusy)
+		return
+	}
+
+	uid, _, err := GetCurrentUser(c)
+	if err != nil {
+		ResponseError(c, CodeNeedLogin)
+		return
+	}
+
+	if uid != p.Post.AuthorID {
+		zap.L().Error("no power to resubmit post", zap.Any("用户没有权限", p.Post.AuthorID))
+		ResponseError(c, CodeServerBusy)
+		return
+	}
+
+	//2.业务处理
+	if err := logic.ResubmitPost(p); err != nil {
+		zap.L().Error("logic.ResubmitPost(p) failed", zap.Error(err))
+		ResponseError(c, CodeServerBusy)
+		return
+	}
+
+	//3.返回响应
+	ResponseSuccess(c, nil)
+
+}
+
+func DeletePostHandler(c *gin.Context) {
+	//1.参数校验
+	id := c.Param("id")
+	pid, _ := strconv.ParseInt(id, 10, 64)
+
+	uid, _, err := GetCurrentUser(c)
+	if err != nil {
+		ResponseError(c, CodeNeedLogin)
+		return
+	}
+
+	//2.业务处理
+	if err := logic.DeletePost(pid, uid); err != nil {
+		zap.L().Error("logic.DeletePost(pid,cid) failed", zap.Error(err))
+		ResponseError(c, CodeServerBusy)
+		return
+	}
+
+	//3.返回响应
+	ResponseSuccess(c, nil)
 }

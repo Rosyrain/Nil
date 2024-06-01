@@ -1,12 +1,12 @@
 package logic
 
 import (
+	"errors"
+	"go.uber.org/zap"
 	"nil/dao/mysql"
 	"nil/dao/redis"
 	"nil/models"
 	snowflake "nil/pkg/snowflask"
-
-	"go.uber.org/zap"
 )
 
 func CreatePost(p *models.Post) (err error) {
@@ -100,7 +100,7 @@ func GetPostList(offset, limit int64) (data []*models.ApiPostDetail, err error) 
 // GetPostList2 从获取帖子列表（不分社区，只按照时间和分数）
 func GetPostList2(p *models.ParamPostList) (data []*models.ApiPostDetail, err error) {
 	//2.取redis查询id列表
-	ids, err := redis.GetPostListIDsInOrder(p)
+	ids, err := redis.GetNormalPostListIDsInOrder(p)
 	if err != nil {
 		return
 	}
@@ -155,7 +155,7 @@ func GetPostList2(p *models.ParamPostList) (data []*models.ApiPostDetail, err er
 // GetChunkPostList 根据板块，时间/分数获取帖子列表
 func GetChunkPostList(p *models.ParamPostList) (data []*models.ApiPostDetail, err error) {
 	//2.取redis查询id列表
-	ids, err := redis.GetChunkCheckPostListIDsInOrder(p)
+	ids, err := redis.GetChunkNormalPostListIDsInOrder(p)
 	if err != nil {
 		return
 	}
@@ -280,4 +280,110 @@ func GetUserPostList(p *models.ParamPostList) (data []*models.ApiPostDetail, err
 
 	return
 
+}
+
+func ResubmitPost(p *models.ParamResubmitPost) error {
+	//2.2判断chunk_id是否发生改变，发生改变也需要修改缓存
+	//这点提前了，我需要知道之前的chunk_id才能完成下面的 1.
+	oldPost, err := mysql.GetPostByID(p.PostID)
+	if err != nil {
+		zap.L().Error("mysql.GetPostByID failed", zap.Error(err))
+		return err
+	}
+
+	//1.先将Post从之前状态的缓存中进行删除
+	if err := redis.DeletePostCache(p.Status, p.PostID, oldPost.ChunkID); err != nil {
+		zap.L().Error("redis.DeletePostCache failed", zap.Error(err))
+		return err
+	}
+
+	//2.将帖子放入审核缓存
+	if err := redis.AddPostTobeReviewCache(p.PostID, p.Post.ChunkID); err != nil {
+		zap.L().Error("redis.AddPostTobeReviewCache failed", zap.Error(err))
+		return err
+	}
+
+	if oldPost.ChunkID != p.Post.ChunkID {
+		//2.2.1删除原来的chunk下的pid
+		err := redis.DeletePostFromChunkCache(p.PostID, oldPost.ChunkID)
+		if err != nil {
+			zap.L().Error("redis.DeleteChunkCache failed", zap.Error(err))
+			return err
+		}
+
+		//2.2.1将pid加入新的chunk缓存
+		err = redis.AddPostToChunkCache(p.PostID, p.Post.ChunkID)
+		if err != nil {
+			zap.L().Error("redis.AddPostToChunkCache failed", zap.Error(err))
+			return err
+		}
+
+	}
+
+	//3.将帖子内容更新至数据库当中
+	p.Post.Status = 0
+	err = mysql.ResubmitPost(p.Post)
+
+	return err
+}
+
+func DeletePost(pid, uid int64) (err error) {
+	//1.拿到post的信息
+	post, err := mysql.GetPostByID(pid)
+	if err != nil {
+		return err
+	}
+
+	//1.检查用户是否有权限
+	if post.AuthorID != uid {
+		zap.L().Error("DeletePost no power", zap.Any("没有权限-uid:", uid))
+		return mysql.ErrorNotPower
+	}
+
+	if post.Status == 3 {
+		return errors.New("以及进入待删除状态")
+	}
+
+	//2.更改post的状态
+	if err = mysql.DeletePost(pid); err != nil {
+		return err
+	}
+
+	//3.删除post原来的缓存
+	err = redis.DeletePostCache(int(post.Status), pid, post.ChunkID)
+	if err != nil {
+		zap.L().Error("redis.DeletePostCache failed", zap.Error(err))
+		return err
+	}
+
+	//4.加入待删除缓存
+	err = redis.AddPostToDeleteCache(pid, post.ChunkID)
+	if err != nil {
+		zap.L().Error("redis.AddPostToDeleteCache failed", zap.Error(err))
+		return err
+	}
+
+	//5.将有关的评论全部删除
+	//5.1得到将帖子主评论ids
+	p := models.ParamCommentList{
+		PostID: pid,
+		Page:   1,
+		Size:   -1,
+		Order:  "time",
+	}
+
+	comments, err := GetPostMCommentList(&p)
+	if err != nil {
+		return
+	}
+
+	for _, comment := range comments {
+		if err := CommentDeleteForPost(comment.CommentID, comment.Post.AuthorID, comment.PostID); err != nil {
+			continue
+		}
+	}
+
+	//有关帖子的缓存，在管理端进行删除
+
+	return nil
 }

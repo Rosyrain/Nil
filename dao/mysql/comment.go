@@ -16,7 +16,7 @@ func CreateComment(p *models.Comment) (err error) {
 func GetCommentByID(cid int64) (comment *models.Comment, err error) {
 	comment = new(models.Comment)
 	sqlStr := `select 
-    comment_id,post_id,author_i,contentd,create_time 
+    comment_id,post_id,author_id,content,create_time 
 	from comment where comment_id=?`
 	err = db.Get(comment, sqlStr, cid)
 	return
@@ -40,5 +40,19 @@ func GetCommentListByIDs(ids []string) (data []*models.Comment, err error) {
 	//将query重绑至db，然后查询
 	query = db.Rebind(query)
 	err = db.Select(&data, query, args...) //!!!!别忘记最后的 ...
+	return
+}
+
+func DeleteCommentByIDs(ids []string) (err error) {
+	sqlStr := `delete from comment where comment_id in (?) order by FIND_IN_SET(comment_id,?)`
+
+	query, args, err := sqlx.In(sqlStr, ids, strings.Join(ids, ","))
+	if err != nil {
+		return err
+	}
+
+	query = db.Rebind(query)
+
+	_, err = db.Exec(query, args...)
 	return
 }
