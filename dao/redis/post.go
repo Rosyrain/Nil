@@ -39,16 +39,16 @@ func CreatePost(postID, ChunkID, uid int64) error {
 	})
 
 	//把帖子id加到社区的set
-	cKey := GetRedisKey(KeyChunkPrefix + strconv.Itoa(int(ChunkID)))
+	cKey := GetRedisKey(KeyChunkPrefix) + strconv.Itoa(int(ChunkID))
 	pipeline.SAdd(cKey, postID)
 
 	//把帖子id加到user的set下
-	ukey := GetRedisKey(KeyUserPostPrefix + strconv.Itoa(int(uid)))
+	ukey := GetRedisKey(KeyUserPostPrefix) + strconv.Itoa(int(uid))
 	pipeline.SAdd(ukey, postID)
 
 	//将贴子放入待审核的缓存池
-	rkey := GetRedisKey(KeyChunkToBeReviewPrefix + strconv.Itoa(int(ChunkID)))
-	pipeline.SAdd(rkey)
+	rkey := GetRedisKey(KeyChunkToBeReviewPrefix) + strconv.Itoa(int(ChunkID))
+	pipeline.SAdd(rkey, postID)
 
 	_, err := pipeline.Exec() //事务同时成功或者同时失败
 

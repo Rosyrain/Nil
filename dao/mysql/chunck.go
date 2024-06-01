@@ -2,9 +2,8 @@ package mysql
 
 import (
 	"database/sql"
-	"nil/models"
-
 	"go.uber.org/zap"
+	"nil/models"
 )
 
 func CheckChunkExist(chunkname string) (err error) {

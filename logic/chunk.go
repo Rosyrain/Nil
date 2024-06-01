@@ -4,7 +4,6 @@ import (
 	"errors"
 	"nil/dao/mysql"
 	"nil/models"
-	snowflake "nil/pkg/snowflask"
 )
 
 func CreateChunk(p *models.ParamChunk) error {
@@ -21,11 +20,11 @@ func CreateChunk(p *models.ParamChunk) error {
 	}
 
 	//获取板块id
-	chunk_id := snowflake.GenID()
+	//chunk_id := snowflake.GenID()
 
 	//整合Chunk需要的信息
 	c := models.ChunkDetail{
-		ID:           chunk_id,
+		ID:           p.ChunkId,
 		Name:         p.ChunkName,
 		Introduction: p.Introduction,
 	}
@@ -45,5 +44,4 @@ func GetChunkList() ([]*models.Chunk, error) {
 func GetChunkDetail(id int64) (*models.ChunkDetail, error) {
 	//查找数据库 查到所有的community 并返回
 	return mysql.GetChunkDetailByID(id)
-
 }

@@ -53,7 +53,7 @@ func VoteForPost(userID, postID string, value float64) error {
 
 	//2.更新分数
 	//1.先查当前用户给当前帖子的投票记录
-	ov := client.ZScore(GetRedisKey(KeyPostVotedPrefix+postID), userID).Val()
+	ov := client.ZScore(GetRedisKey(KeyPostVotedPrefix)+postID, userID).Val()
 
 	//更新：如果这一次投票的值和之前保存的值一致，就提示不允许重复投票
 	if value == ov {
@@ -73,9 +73,9 @@ func VoteForPost(userID, postID string, value float64) error {
 
 	//3.记录用户为改帖子投票的数据
 	if value == 0 {
-		pipeline.ZRem(GetRedisKey(KeyPostVotedPrefix+postID), userID)
+		pipeline.ZRem(GetRedisKey(KeyPostVotedPrefix)+postID, userID)
 	}
-	pipeline.ZAdd(GetRedisKey(KeyPostVotedPrefix+postID), redis.Z{
+	pipeline.ZAdd(GetRedisKey(KeyPostVotedPrefix)+postID, redis.Z{
 		Score:  value, //当前用户投的是赞成票或反对票
 		Member: userID,
 	})
@@ -97,7 +97,7 @@ func VoteForMComment(userID, commentID string, value float64) error {
 
 	//2.更新分数
 	//1.先查当前用户给当前帖子的投票记录
-	ov := client.ZScore(GetRedisKey(KeyCommentVotedPrefix+commentID), userID).Val()
+	ov := client.ZScore(GetRedisKey(KeyCommentVotedPrefix)+commentID, userID).Val()
 
 	//更新：如果这一次投票的值和之前保存的值一致，就提示不允许重复投票
 	if value == ov {
@@ -117,9 +117,9 @@ func VoteForMComment(userID, commentID string, value float64) error {
 
 	//3.记录用户为改帖子投票的数据
 	if value == 0 {
-		pipeline.ZRem(GetRedisKey(KeyCommentVotedPrefix+commentID), userID)
+		pipeline.ZRem(GetRedisKey(KeyCommentVotedPrefix)+commentID, userID)
 	}
-	pipeline.ZAdd(GetRedisKey(KeyCommentVotedPrefix+commentID), redis.Z{
+	pipeline.ZAdd(GetRedisKey(KeyCommentVotedPrefix)+commentID, redis.Z{
 		Score:  value, //当前用户投的是赞成票或反对票
 		Member: userID,
 	})
@@ -141,7 +141,7 @@ func VoteForSubComment(userID, commentID string, value float64) error {
 
 	//2.更新分数
 	//1.先查当前用户给当前帖子的投票记录
-	ov := client.ZScore(GetRedisKey(KeySubCommentVotedPrefix+commentID), userID).Val()
+	ov := client.ZScore(GetRedisKey(KeySubCommentVotedPrefix)+commentID, userID).Val()
 
 	//更新：如果这一次投票的值和之前保存的值一致，就提示不允许重复投票
 	if value == ov {
@@ -161,9 +161,9 @@ func VoteForSubComment(userID, commentID string, value float64) error {
 
 	//3.记录用户为改帖子投票的数据
 	if value == 0 {
-		pipeline.ZRem(GetRedisKey(KeySubCommentVotedPrefix+commentID), userID)
+		pipeline.ZRem(GetRedisKey(KeySubCommentVotedPrefix)+commentID, userID)
 	}
-	pipeline.ZAdd(GetRedisKey(KeySubCommentVotedPrefix+commentID), redis.Z{
+	pipeline.ZAdd(GetRedisKey(KeySubCommentVotedPrefix)+commentID, redis.Z{
 		Score:  value, //当前用户投的是赞成票或反对票
 		Member: userID,
 	})
@@ -175,7 +175,7 @@ func VoteForSubComment(userID, commentID string, value float64) error {
 func GetPostVoteData(ids []string) (data []int64, err error) {
 	data = make([]int64, 0, len(ids))
 	for _, id := range ids {
-		key := GetRedisKey(KeyPostVotedPrefix + id)
+		key := GetRedisKey(KeyPostVotedPrefix) + id
 		//查找key中分数为1的元素的数量->统计每篇帖子赞成票的数量
 		v := client.ZCount(key, "1", "1").Val()
 		data = append(data, v)
@@ -209,7 +209,7 @@ func GetPostVoteData(ids []string) (data []int64, err error) {
 func GetCommentVoteData(ids []string) (data []int64, err error) {
 	data = make([]int64, 0, len(ids))
 	for _, id := range ids {
-		key := GetRedisKey(KeyCommentVotedPrefix + id)
+		key := GetRedisKey(KeyCommentVotedPrefix) + id
 		//查找key中分数为1的元素的数量->统计每篇帖子赞成票的数量
 		v := client.ZCount(key, "1", "1").Val()
 		data = append(data, v)
@@ -220,7 +220,7 @@ func GetCommentVoteData(ids []string) (data []int64, err error) {
 func GetSubCommentVoteData(ids []string) (data []int64, err error) {
 	data = make([]int64, 0, len(ids))
 	for _, id := range ids {
-		key := GetRedisKey(KeySubCommentVotedPrefix + id)
+		key := GetRedisKey(KeySubCommentVotedPrefix) + id
 		//查找key中分数为1的元素的数量->统计每篇帖子赞成票的数量
 		v := client.ZCount(key, "1", "1").Val()
 		data = append(data, v)

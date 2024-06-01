@@ -100,9 +100,9 @@ type ParamHistoryList struct {
 }
 
 type ParamResubmitPost struct {
-	PostID int64 `json:"post_id,string" binding:"required"`
-	Status int   `json:"status" binding:"oneof=0 1 2"`
-	Post   *Post `json:"post" binding:"required"`
+	PostID    int64 `json:"post_id,string" binding:"required"`
+	OldStatus int   `json:"old_status" binding:"oneof=0 1 2"`
+	Post      *Post `json:"post" binding:"required"`
 }
 
 // ParamChunkPostList  获取社区列表query string 参数

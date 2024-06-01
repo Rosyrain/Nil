@@ -7,6 +7,7 @@ import (
 	"nil/dao/redis"
 	"nil/models"
 	snowflake "nil/pkg/snowflask"
+	"strconv"
 )
 
 func CreatePost(p *models.Post) (err error) {
@@ -19,8 +20,9 @@ func CreatePost(p *models.Post) (err error) {
 		return err
 	}
 	err = redis.CreatePost(p.ID, p.ChunkID, p.AuthorID)
+
 	//3.返回
-	return
+	return nil
 }
 
 // GetPostDetail 根据帖子id查询帖子详情数据
@@ -35,6 +37,9 @@ func GetPostDetail(pid int64) (data *models.ApiPostDetail, err error) {
 	}
 
 	data = new(models.ApiPostDetail)
+
+	voteNums, err := redis.GetPostVoteData([]string{strconv.Itoa(int(pid))})
+	voteNum := voteNums[0]
 
 	//根据作者id查询作者信息
 	user, err := mysql.GetUserById(post.AuthorID)
@@ -55,6 +60,7 @@ func GetPostDetail(pid int64) (data *models.ApiPostDetail, err error) {
 
 	data = &models.ApiPostDetail{
 		AuthorName:  user.Username,
+		VoteNumber:  voteNum,
 		Post:        post,
 		ChunkDetail: chunk,
 	}
@@ -292,7 +298,7 @@ func ResubmitPost(p *models.ParamResubmitPost) error {
 	}
 
 	//1.先将Post从之前状态的缓存中进行删除
-	if err := redis.DeletePostCache(p.Status, p.PostID, oldPost.ChunkID); err != nil {
+	if err := redis.DeletePostCache(p.OldStatus, p.PostID, oldPost.ChunkID); err != nil {
 		zap.L().Error("redis.DeletePostCache failed", zap.Error(err))
 		return err
 	}

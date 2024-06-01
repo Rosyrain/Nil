@@ -12,6 +12,7 @@ type ParamExamine struct {
 // ParamChunk  板块创建信息
 type ParamChunk struct {
 	ChunkName    string `json:"chunk_name" binding:"required"`
+	ChunkId      int64  `json:"chunk_id,string" binding:"required"`
 	Introduction string `json:"introduction" binding:"required"`
 }
 
