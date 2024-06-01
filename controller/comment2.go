@@ -22,11 +22,16 @@ func SuperUserCommentDeleteHandler(c *gin.Context) {
 
 	//2.业务处理
 	if err := logic.SuperuserCommentDelete(cid, uid); err != nil {
+
+		zap.L().Error("logic.CommentDelete failed", zap.Error(err))
 		if errors.Is(err, mysql.ErrorSuperuserNotExist) {
 			ResponseError(c, CodeNeedLogin)
 			return
 		}
-		zap.L().Error("logic.CommentDelete failed", zap.Error(err))
+		if errors.Is(err, mysql.ErrorNotPower) {
+			ResponseErrorWithMsg(c, CodeServerBusy, "没有权限")
+			return
+		}
 		ResponseError(c, CodeServerBusy)
 		return
 	}

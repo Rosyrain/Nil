@@ -39,6 +39,10 @@ func ExaminePostHandler(c *gin.Context) {
 	//2.业务处理
 	if err := logic.ExaminePost(p); err != nil {
 		zap.L().Error("logic.ExaminePost(p)", zap.Error(err))
+		if errors.Is(err, mysql.ErrorSuperuserNotExist) {
+			ResponseError(c, CodeNeedLogin)
+			return
+		}
 		if errors.Is(err, mysql.ErrorNotPower) {
 			ResponseErrorWithMsg(c, CodeServerBusy, "没有权限")
 			return
@@ -78,6 +82,10 @@ func SuperUserGetPostListHandler(c *gin.Context) {
 	data, err := logic.SuperuserGetPostList(&p)
 	if err != nil {
 		zap.L().Error("logic.SuperuserGetPostList(&p) failed", zap.Error(err))
+		if errors.Is(err, mysql.ErrorSuperuserNotExist) {
+			ResponseError(c, CodeNeedLogin)
+			return
+		}
 		if errors.Is(err, mysql.ErrorNotPower) {
 			ResponseErrorWithMsg(c, CodeServerBusy, "没有权限")
 			return
@@ -104,6 +112,10 @@ func SuperuserDeletePostHandler(c *gin.Context) {
 	//2.业务处理
 	if err := logic.SuperuserPostDelete(pid, uid); err != nil {
 		zap.L().Error("logic.SuperuserPostDelete(pid,uid) failed", zap.Error(err))
+		if errors.Is(err, mysql.ErrorSuperuserNotExist) {
+			ResponseError(c, CodeNeedLogin)
+			return
+		}
 		if errors.Is(err, mysql.ErrorNotPower) {
 			ResponseErrorWithMsg(c, CodeServerBusy, "没有权限")
 			return
